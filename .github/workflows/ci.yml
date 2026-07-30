@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["20", "22", "24"]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      # The server is only useful if it actually speaks MCP, which a unit test
+      # does not prove. This drives the real protocol over stdio: initialize,
+      # list the tools, then call one against a bundle fetched from upstream.
+      - name: Smoke-test the protocol against a real bundle
+        run: |
+          git clone --quiet --depth 1 --filter=blob:none --sparse \
+            https://github.com/GoogleCloudPlatform/knowledge-catalog.git upstream
+          git -C upstream sparse-checkout set okf/bundles/acme_retail
+          node -e '
+            const { spawn } = require("node:child_process");
+            const p = spawn("node", ["dist/index.js"], { stdio: ["pipe", "pipe", "inherit"] });
+            let buf = ""; const pending = new Map(); let id = 0;
+            p.stdout.on("data", (d) => {
+              buf += d; let i;
+              while ((i = buf.indexOf("\n")) >= 0) {
+                const line = buf.slice(0, i); buf = buf.slice(i + 1);
+                if (!line.trim()) continue;
+                const m = JSON.parse(line);
+                if (pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
+              }
+            });
+            const send = (method, params) => new Promise((res) => {
+              const rid = ++id; pending.set(rid, res);
+              p.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: rid, method, params }) + "\n");
+            });
+            (async () => {
+              await send("initialize", { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "ci", version: "1" } });
+              p.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) + "\n");
+
+              const tools = (await send("tools/list", {})).result.tools;
+              const names = tools.map((t) => t.name).sort();
+              const expected = ["okf_get_concept","okf_health_report","okf_list_concepts","okf_open_bundle","okf_reload_bundle","okf_search","okf_validate"];
+              if (JSON.stringify(names) !== JSON.stringify(expected)) {
+                throw new Error("tool list changed: " + names.join(","));
+              }
+              if (!tools.every((t) => t.annotations && typeof t.annotations.readOnlyHint === "boolean")) {
+                throw new Error("every tool must declare annotations");
+              }
+
+              const call = async (name, args) => (await send("tools/call", {
+                name, arguments: { bundle_path: "upstream/okf/bundles/acme_retail", response_format: "json", ...args },
+              })).result.structuredContent;
+
+              const open = await call("okf_open_bundle", {});
+              if (open.concept_count !== 9) throw new Error("expected 9 concepts, got " + open.concept_count);
+
+              const val = await call("okf_validate", {});
+              if (!val.conformant) throw new Error("upstream bundle should validate clean");
+
+              // Pinned date: upstream stale_after values passing must not fail this repo.
+              const health = await call("okf_health_report", { as_of: "2027-01-01" });
+              if (health.stale.length !== 7) throw new Error("expected 7 stale as of 2027-01-01, got " + health.stale.length);
+
+              console.log("protocol smoke test passed:", names.length, "tools");
+              p.kill();
+            })().catch((e) => { console.error(e.message); p.kill(); process.exit(1); });
+          '
