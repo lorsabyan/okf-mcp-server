@@ -30,6 +30,28 @@ jobs:
       # The server is only useful if it actually speaks MCP, which a unit test
       # does not prove. This drives the real protocol over stdio: initialize,
       # list the tools, then call one against a bundle fetched from upstream.
+      # npm installs `bin` as a symlink, so argv[1] is the link and not the
+      # module. 0.1.0 shipped a direct-execution guard that compared them
+      # unresolved, making `npx okf-mcp-server` exit 0 in silence. Running
+      # `node dist/index.js` cannot catch that — the paths are identical there.
+      - name: Entry point must run through a bin symlink
+        run: |
+          mkdir -p /tmp/binlink
+          ln -sf "$PWD/dist/index.js" /tmp/binlink/okf-mcp-server
+          out=$(/tmp/binlink/okf-mcp-server --help 2>&1)
+          echo "$out"
+          case "$out" in
+            *"okf-mcp-server"*) ;;
+            *) echo "::error::running via a bin symlink produced no output — the direct-execution guard is broken"; exit 1 ;;
+          esac
+
+      - name: Importing the module must not start a server
+        run: |
+          timeout 20 node -e 'import("./dist/index.js").then(m => {
+            if (typeof m.createServer !== "function") { console.error("createServer missing"); process.exit(1); }
+            process.exit(0);
+          })' || { echo "::error::importing the entry point hangs or fails — it must not connect a transport"; exit 1; }
+
       - name: Smoke-test the protocol against a real bundle
         run: |
           git clone --quiet --depth 1 --filter=blob:none --sparse \

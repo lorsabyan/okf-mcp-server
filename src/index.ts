@@ -15,13 +15,18 @@
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { pathToFileURL } from "node:url";
+import { createRequire } from "node:module";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerBrowseTools } from "./tools/browse.js";
 import { registerQualityTools } from "./tools/quality.js";
 
-export const SERVER_NAME = "okf-mcp-server";
-export const SERVER_VERSION = "0.1.0";
+// Read from the manifest rather than duplicated here: a hardcoded string drifts
+// from the published version the first time one is bumped without the other.
+const manifest = createRequire(import.meta.url)("../package.json") as { name: string; version: string };
+export const SERVER_NAME = manifest.name;
+export const SERVER_VERSION = manifest.version;
 
 export function createServer(): McpServer {
   const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
@@ -57,9 +62,27 @@ async function main(): Promise<void> {
  * test, or embedding the server in another host — connects a stdio transport as
  * a side effect and the process never exits. Node's test runner hits exactly
  * that when it walks the build output.
+ *
+ * Both sides are resolved through `realpathSync` because npm installs `bin` as a
+ * SYMLINK: run via `npx okf-mcp-server`, `process.argv[1]` is
+ * `node_modules/.bin/okf-mcp-server` while `import.meta.url` is the real
+ * `dist/index.js`. Comparing them unresolved makes the guard false for every
+ * installed user, so the command exits 0 and silently does nothing — which is
+ * how 0.1.0 shipped. Running `node dist/index.js` from a checkout hides it,
+ * because there the two paths are already the same.
  */
-const executedDirectly =
-  process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+function isExecutedDirectly(): boolean {
+  const invoked = process.argv[1];
+  if (invoked === undefined) return false;
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(invoked);
+  } catch {
+    // A path that cannot be resolved is not this module being run.
+    return false;
+  }
+}
+
+const executedDirectly = isExecutedDirectly();
 
 if (executedDirectly) {
   main().catch((error: unknown) => {
