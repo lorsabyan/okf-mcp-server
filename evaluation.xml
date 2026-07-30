@@ -1,0 +1,52 @@
+<evaluation>
+  <!--
+    Ten questions over the upstream Acme Retail reference bundle
+    (GoogleCloudPlatform/knowledge-catalog @ 3fcbb9f, okf/bundles/acme_retail).
+
+    Each requires several tool calls and real reading, not a single lookup. Every
+    answer was verified by driving the server over stdio and confirming it can be
+    reached from the tools alone. Answers are stable: the bundle is pinned to a
+    commit, and questions about staleness name an explicit as_of date so the
+    clock cannot change the answer.
+  -->
+  <qa_pair>
+    <question>In the Acme Retail bundle, one metric is retired and should not be used for new analyses. Which Attested Computation backs the metric that replaced it? Answer with the concept id.</question>
+    <answer>computations/gross-margin-period</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>The Acme Retail bundle contains a concept that nobody has verified — its trust tier is "unverified" while every other concept is human-reviewed. What is its concept id?</question>
+    <answer>skills/run-on-bq</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Evaluating the Acme Retail bundle as of 2027-01-01, how many concepts are past their stale_after date?</question>
+    <answer>7</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>The Attested Computation for gross margin declares parameters an agent may fill. How many parameters does it declare, and what is the name of the first one?</question>
+    <answer>2, period_start</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Which runtime do both of Acme Retail's Attested Computations target?</question>
+    <answer>bigquery</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Acme Retail's revenue metric cites a Finance policy as its source. What is the concept id of that policy document inside the bundle?</question>
+    <answer>policies/revenue-recognition</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Run a conformance check on the Acme Retail bundle. How many errors does it report, and which OKF version is it checked against?</question>
+    <answer>0 errors, OKF v0.2</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>One concept in the Acme Retail bundle has no inbound or outbound links, making it an orphan in the bundle's link graph. Which concept id is it?</question>
+    <answer>skills/run-on-bq</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>The retired gross-margin metric in Acme Retail was last updated well over a year ago. What date does its generated.at record, in YYYY-MM-DD form?</question>
+    <answer>2024-01-15</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>How many distinct OKF concept types does the Acme Retail bundle use across its 9 concepts?</question>
+    <answer>5</answer>
+  </qa_pair>
+</evaluation>

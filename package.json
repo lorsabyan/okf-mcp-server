@@ -1,0 +1,36 @@
+{
+  "name": "okf-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server exposing Open Knowledge Format (OKF) bundles to agents: browse, search, read concepts, and check bundle health.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "bin": {
+    "okf-mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test \"dist/**/*.test.js\"",
+    "clean": "rm -rf dist"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@lorsabyan/okf-core": "^0.3.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
