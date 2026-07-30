@@ -15,6 +15,7 @@
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { pathToFileURL } from "node:url";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerBrowseTools } from "./tools/browse.js";
 import { registerQualityTools } from "./tools/quality.js";
@@ -49,7 +50,20 @@ async function main(): Promise<void> {
   process.stderr.write(`${SERVER_NAME} ${SERVER_VERSION} running on stdio\n`);
 }
 
-main().catch((error: unknown) => {
-  process.stderr.write(`Fatal: ${error instanceof Error ? error.message : String(error)}\n`);
-  process.exit(1);
-});
+/**
+ * Only start when run as a program, never on import.
+ *
+ * Without this guard, importing anything from this module — `createServer` for a
+ * test, or embedding the server in another host — connects a stdio transport as
+ * a side effect and the process never exits. Node's test runner hits exactly
+ * that when it walks the build output.
+ */
+const executedDirectly =
+  process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (executedDirectly) {
+  main().catch((error: unknown) => {
+    process.stderr.write(`Fatal: ${error instanceof Error ? error.message : String(error)}\n`);
+    process.exit(1);
+  });
+}
