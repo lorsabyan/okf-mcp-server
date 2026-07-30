@@ -10,13 +10,30 @@ lets an agent use one without being taught the format.
 
 Built on [`@lorsabyan/okf-core`](https://www.npmjs.com/package/@lorsabyan/okf-core).
 
+## Is this the one you want?
+
+**If you use Claude Code or Codex, probably not — use the
+[OKF skill](https://github.com/lorsabyan/okf-skill) instead.**
+
+| Your agent | Use | Why |
+|---|---|---|
+| **Cursor, Windsurf, Zed, other MCP clients** | **this server** | No skill support, so the format arrives as tools. |
+| **An agent with no filesystem access** | **this server** | The skill needs to read files and run scripts; this works over a protocol. |
+| **Claude Code, Codex** | [the skill](https://github.com/lorsabyan/okf-skill) | Skills load automatically and carry the format itself, so the agent reads bundles with the file tools it already has. |
+
+That last row is measured rather than assumed. With the skill installed, a real
+Claude Code session answered a bundle question using the skill plus `Read` and
+`Bash`, making **zero** calls to this server. The skill triggers on any mention of
+OKF and prescribes a complete procedure, while MCP tools cost a `ToolSearch`
+round-trip before the first call. In that environment this server can only add
+latency, never capability — so installing both is worse than installing either.
+
+Where there is no skill, the calculus inverts: this is the only thing that
+teaches the agent the format.
+
 ## Install
 
-```sh
-claude mcp add okf -- npx -y okf-mcp-server
-```
-
-Or in any MCP client's config:
+In your MCP client's config:
 
 ```json
 {
@@ -24,6 +41,14 @@ Or in any MCP client's config:
     "okf": { "command": "npx", "args": ["-y", "okf-mcp-server"] }
   }
 }
+```
+
+For Claude Code — worth repeating that the [skill](https://github.com/lorsabyan/okf-skill) is the
+better fit there, so this is mainly for testing the server itself:
+
+```sh
+claude mcp add okf -- npx -y okf-mcp-server
+claude mcp remove okf            # when you are done
 ```
 
 Transport is **stdio** — bundles are read from the local filesystem, so this is a local
