@@ -1,7 +1,7 @@
 # okf-mcp-server
 
 An [MCP](https://modelcontextprotocol.io) server that exposes
-[Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/3fcbb9f/okf/SPEC.md)
+[Open Knowledge Format](https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/ad30107/SPEC.md)
 (OKF) bundles to agents — browse, search, read concepts, and audit trust and freshness.
 
 An OKF bundle is a directory of markdown files with YAML frontmatter, each describing one
@@ -97,11 +97,11 @@ front of the agent rather than leaving them buried in frontmatter:
 Against any OKF bundle:
 
 ```sh
-git clone https://github.com/GoogleCloudPlatform/knowledge-catalog /tmp/kc
-git -C /tmp/kc checkout 3fcbb9f
+git clone https://github.com/GoogleCloudPlatform/open-knowledge-format /tmp/okf
+git -C /tmp/okf checkout ad30107
 ```
 
-Then ask an agent something like *"Open the bundle at /tmp/kc/okf/bundles/acme_retail — which
+Then ask an agent something like *"Open the bundle at /tmp/okf/bundles/acme_retail — which
 metric is deprecated, and what replaced it?"*
 
 ## Development
